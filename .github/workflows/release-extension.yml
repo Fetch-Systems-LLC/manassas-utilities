@@ -1,0 +1,46 @@
+name: Release Extension
+
+# Trigger by pushing a version tag: git tag v1.0.1 && git push origin v1.0.1
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write  # needed to create GitHub Releases
+
+jobs:
+  package:
+    name: Package & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build zip
+        run: |
+          cd extension
+          zip -r ../manassas-bill-downloader.zip . \
+            --exclude "*.DS_Store" \
+            --exclude "__MACOSX/*"
+        # The zip lands at the repo root as manassas-bill-downloader.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Manassas Bill Downloader ${{ github.ref_name }}"
+          body: |
+            ## Manassas Bill Downloader ${{ github.ref_name }}
+
+            ### Install (Chrome / Edge)
+            1. Download **manassas-bill-downloader.zip** below and unzip it.
+            2. Open **chrome://extensions** (or **edge://extensions**).
+            3. Enable **Developer mode** (top-right toggle).
+            4. Click **Load unpacked** and select the unzipped `extension/` folder.
+            5. Navigate to your [InvoiceCloud billing page](https://cityofmanassas.invoicecloud.com) and click the extension icon.
+
+            > For a full walkthrough see the [guide](https://your-site/guide).
+          files: manassas-bill-downloader.zip
+          draft: false
+          prerelease: false

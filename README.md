@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Manassas Bill Tracker
 
-## Getting Started
+A free, private, and community-built tool to analyze your City of Manassas utility bills over time.
 
-First, run the development server:
+## 🚀 Features
+
+- **Private by Design:** Your PDFs are parsed in the cloud but your data is stored locally in your browser's IndexedDB. No account required.
+- **Historical Analysis:** See trends in your electricity, water, and sewer usage.
+- **Open Source:** Built for the community, by the community.
+
+## 🛠️ Getting Started
+
+First, install dependencies:
+
+```bash
+npm install
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🤝 Contributing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project is free and open source. Contributions are welcome! 
 
-## Learn More
+1. Fork the repository.
+2. Create a feature branch.
+3. Submit a Pull Request.
 
-To learn more about Next.js, take a look at the following resources:
+## 🐞 Support & Feedback
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+If you encounter a bug or have a feature request, you have two options:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **GitHub Issues (Preferred for Tech Users):** [Submit an issue here](https://github.com/calebmabry/manassas-utils/issues).
+2. **Email (Preferred for End Users):** Send an email to [support@fetchsystemsllc.com](mailto:support@fetchsystemsllc.com).
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built by [Fetch Systems LLC](https://fetchsystemsllc.com).
