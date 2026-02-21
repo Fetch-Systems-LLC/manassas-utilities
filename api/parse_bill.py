@@ -5,6 +5,11 @@ import re
 import sys
 from http.server import BaseHTTPRequestHandler
 
+# Add vendored packages to sys.path (populated during Vercel build)
+_vendor_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "vendor")
+if os.path.isdir(_vendor_dir) and _vendor_dir not in sys.path:
+    sys.path.insert(0, _vendor_dir)
+
 try:
     import pdfplumber
 except ImportError:

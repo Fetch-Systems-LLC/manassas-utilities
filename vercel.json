@@ -1,0 +1,8 @@
+{
+  "buildCommand": "pip install -r requirements.txt --target api/vendor && next build",
+  "functions": {
+    "app/api/parse_bill/route.ts": {
+      "includeFiles": "api/**"
+    }
+  }
+}
