@@ -52,7 +52,7 @@ export function Nav() {
 
           <div className="flex items-center gap-3">
             <a
-              href="https://github.com/calebmabry/manassas-utils"
+              href="https://github.com/Fetch-Systems-LLC/manassas-utilities"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"

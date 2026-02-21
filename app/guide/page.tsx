@@ -71,7 +71,7 @@ export default function GuidePage() {
           <div className="flex justify-center gap-3 pt-2">
             <Button asChild>
               <a
-                href="https://github.com/calebmabry/manassas-utils/releases/latest"
+                href="https://github.com/Fetch-Systems-LLC/manassas-utility-extension/releases/latest"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -117,7 +117,7 @@ export default function GuidePage() {
                 <span className="font-semibold text-foreground w-5 shrink-0">1.</span>
                 Go to the{" "}
                 <a
-                  href="https://github.com/calebmabry/manassas-utils/releases/latest"
+                  href="https://github.com/Fetch-Systems-LLC/manassas-utility-extension/releases/latest"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-primary underline underline-offset-2 inline-flex items-center gap-1"

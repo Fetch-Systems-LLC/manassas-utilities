@@ -36,7 +36,7 @@ This project is free and open source. Contributions are welcome!
 
 If you encounter a bug or have a feature request, you have two options:
 
-1. **GitHub Issues (Preferred for Tech Users):** [Submit an issue here](https://github.com/calebmabry/manassas-utils/issues).
+1. **GitHub Issues (Preferred for Tech Users):** [Submit an issue here](https://github.com/Fetch-Systems-LLC/manassas-utilities/issues).
 2. **Email (Preferred for End Users):** Send an email to [support@fetchsystemsllc.com](mailto:support@fetchsystemsllc.com).
 
 ---

@@ -121,7 +121,7 @@ export default function HomePage() {
                   </Button>
                   <Button asChild size="sm">
                     <a
-                      href="https://github.com/calebmabry/manassas-utils/releases/latest"
+                      href="https://github.com/Fetch-Systems-LLC/manassas-utility-extension/releases/latest"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -147,7 +147,7 @@ export default function HomePage() {
                   Support Email
                 </button>
               </SupportDialog>
-              <a href="https://github.com/calebmabry/manassas-utils" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline underline-offset-4">
+              <a href="https://github.com/Fetch-Systems-LLC/manassas-utilities" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors underline underline-offset-4">
                 View on GitHub
               </a>
             </div>
