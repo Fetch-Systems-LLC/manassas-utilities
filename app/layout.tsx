@@ -52,6 +52,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from "@/components/ui/sonner";
+import { CookieBanner } from "@/components/CookieBanner";
 
 export default function RootLayout({
   children,
@@ -65,6 +66,7 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
+        <CookieBanner />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-QQBNNCZTMY"
           strategy="afterInteractive"
