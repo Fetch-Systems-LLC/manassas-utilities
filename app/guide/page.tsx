@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { GuideStepImage } from "@/components/GuideStepImage";
 import { Badge } from "@/components/ui/badge";
@@ -49,10 +48,6 @@ function Step({
 // ---------------------------------------------------------------------------
 
 export default function GuidePage() {
-  if (process.env.NEXT_PUBLIC_ENABLE_GUIDE !== "true") {
-    redirect("/");
-  }
-
   return (
     <>
       <Nav />
@@ -71,12 +66,12 @@ export default function GuidePage() {
           <div className="flex justify-center gap-3 pt-2">
             <Button asChild>
               <a
-                href="https://github.com/Fetch-Systems-LLC/manassas-utility-extension/releases/latest"
+                href="https://chromewebstore.google.com/detail/manassas-bill-downloader/dokoficppoiffepgglgdjkhcalkgekob"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download Extension
+                <Chrome className="mr-2 h-4 w-4" />
+                Add to Chrome — It&apos;s Free
               </a>
             </Button>
             <Button asChild variant="outline">
@@ -97,7 +92,6 @@ export default function GuidePage() {
               {[
                 "Google Chrome or Microsoft Edge (any recent version)",
                 "Your City of Manassas InvoiceCloud login credentials",
-                "The extension zip file downloaded from GitHub (step 1)",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
@@ -111,42 +105,26 @@ export default function GuidePage() {
         {/* Steps */}
         <div>
 
-          <Step number={1} icon={Download} title="Download & Install the Extension">
-            <ol className="space-y-3 text-sm text-muted-foreground list-none">
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground w-5 shrink-0">1.</span>
-                Go to the{" "}
-                <a
-                  href="https://github.com/Fetch-Systems-LLC/manassas-utility-extension/releases/latest"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline underline-offset-2 inline-flex items-center gap-1"
-                >
-                  latest GitHub release <ExternalLink className="h-3 w-3" />
-                </a>{" "}
-                and download <strong className="text-foreground">manassas-bill-downloader.zip</strong>.
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground w-5 shrink-0">2.</span>
-                Unzip the file — you'll get a folder called <code className="bg-muted px-1 rounded text-xs">extension</code>.
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground w-5 shrink-0">3.</span>
-                Open <code className="bg-muted px-1 rounded text-xs">chrome://extensions</code> in your browser.
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground w-5 shrink-0">4.</span>
-                Toggle <strong className="text-foreground">Developer mode</strong> on (top-right corner).
-              </li>
-              <li className="flex gap-2">
-                <span className="font-semibold text-foreground w-5 shrink-0">5.</span>
-                Click <strong className="text-foreground">Load unpacked</strong> and select the unzipped <code className="bg-muted px-1 rounded text-xs">extension</code> folder.
-              </li>
-            </ol>
+          <Step number={1} icon={Chrome} title="Add to Chrome">
+            <p className="text-sm text-muted-foreground mb-4">
+              Visit the Chrome Web Store and click{" "}
+              <strong className="text-foreground">Add to Chrome</strong>, then confirm
+              the prompt. That&apos;s it — no zip files, no developer mode required.
+            </p>
+            <Button asChild size="sm">
+              <a
+                href="https://chromewebstore.google.com/detail/manassas-bill-downloader/dokoficppoiffepgglgdjkhcalkgekob"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Chrome className="mr-2 h-4 w-4" />
+                Open in Chrome Web Store <ExternalLink className="ml-1 h-3 w-3" />
+              </a>
+            </Button>
             <GuideStepImage
-              src="/guide/step-1-load-unpacked.png"
-              alt="Chrome Extensions page with Developer mode enabled and Load unpacked button highlighted"
-              label="step-1-load-unpacked.png"
+              src="/guide/step-1-chrome-web-store.png"
+              alt="Chrome Web Store page for Manassas Bill Downloader with the Add to Chrome button highlighted"
+              label="step-1-chrome-web-store.png"
             />
           </Step>
 

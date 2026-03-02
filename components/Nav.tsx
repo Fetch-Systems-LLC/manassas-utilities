@@ -6,15 +6,12 @@ import { cn } from "@/lib/utils";
 import { BarChart3, Upload, List, Github, Mail, BookOpen } from "lucide-react";
 import { SupportDialog } from "@/components/SupportDialog";
 
-const allLinks = [
+const links = [
   { href: "/", label: "Upload", icon: Upload },
   { href: "/history", label: "History", icon: List },
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/guide", label: "Guide", icon: BookOpen, guideOnly: true },
+  { href: "/guide", label: "Guide", icon: BookOpen },
 ];
-
-const guideEnabled = process.env.NEXT_PUBLIC_ENABLE_GUIDE === "true";
-const links = allLinks.filter((l) => !l.guideOnly || guideEnabled);
 
 export function Nav() {
   const pathname = usePathname();

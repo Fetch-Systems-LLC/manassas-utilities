@@ -34,6 +34,16 @@ import {
 } from "recharts";
 import { AlertTriangle, TrendingUp, TrendingDown, Minus, Upload, X } from "lucide-react";
 import Link from "next/link";
+import { InsightsPanel } from "./components/InsightsPanel";
+import { BillDecomposition } from "./components/BillDecomposition";
+import { SpendingHeatmap } from "./components/SpendingHeatmap";
+import {
+  computeInsights,
+  computeBillDecomposition,
+  computeHeatmapData,
+  type DashboardRow,
+} from "@/lib/analytics";
+import { formatDollar } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -50,11 +60,17 @@ const SERVICE_COLORS = {
 const SERVICE_KEYS = ["electric", "water", "sewer", "refuse", "stormwater"] as const;
 type ServiceKey = typeof SERVICE_KEYS[number];
 
-type RangeOption = 3 | 6 | 12 | null;
+type RangeOption = 3 | 6 | 12 | null | "custom";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Bill dates MM-DD-YYYY → YYYY-MM-DD (for HTML date input comparison) */
+function billDateToISO(dateStr: string): string {
+  const [mm, dd, yyyy] = dateStr.split("-");
+  return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+}
 
 /** Bill dates are MM-DD-YYYY → "Jan '26" */
 function formatMonth(dateStr: string | null) {
@@ -64,10 +80,6 @@ function formatMonth(dateStr: string | null) {
     month: "short",
     year: "2-digit",
   });
-}
-
-function formatDollar(v: number) {
-  return `$${v.toFixed(2)}`;
 }
 
 function safePct(a: number, b: number): number | null {
@@ -116,6 +128,8 @@ export default function DashboardPage() {
   const [bills, setBills]           = useState<StoredBill[]>([]);
   const [loading, setLoading]       = useState(true);
   const [range, setRange]           = useState<RangeOption>(null);
+  const [customStart, setCustomStart] = useState<string>("");
+  const [customEnd, setCustomEnd]     = useState<string>("");
   const [stacked, setStacked]       = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [yoyYearA, setYoyYearA]     = useState<number | null>(null);
@@ -146,10 +160,18 @@ export default function DashboardPage() {
     [bills]
   );
 
-  const data = useMemo(
-    () => (range ? allData.slice(-range) : allData),
-    [allData, range]
-  );
+  const data = useMemo(() => {
+    if (range === "custom") {
+      return allData.filter((d) => {
+        if (!d.bill_date) return false;
+        const iso = billDateToISO(d.bill_date);
+        if (customStart && iso < customStart) return false;
+        if (customEnd && iso > customEnd) return false;
+        return true;
+      });
+    }
+    return range ? allData.slice(-range) : allData;
+  }, [allData, range, customStart, customEnd]);
 
   const effData = useMemo(
     () =>
@@ -161,6 +183,37 @@ export default function DashboardPage() {
         cost_per_day:   d.days > 0         ? +(d.total / d.days).toFixed(2)              : null,
       })),
     [data]
+  );
+
+  // All-history efficiency rows (not range-filtered) — used for analytics baselines
+  const allEffData = useMemo<DashboardRow[]>(
+    () =>
+      allData.map((d) => ({
+        ...d,
+        cost_per_kwh:   d.kwh > 0         ? +(d.electric / d.kwh).toFixed(4)                    : null,
+        cost_per_water: d.water_usage > 0 ? +(d.water / d.water_usage).toFixed(2)               : null,
+        pca_pct:        d.electric > 0    ? +((d.power_cost_adj / d.electric) * 100).toFixed(1) : null,
+        cost_per_day:   d.days > 0        ? +(d.total / d.days).toFixed(2)                       : null,
+      })),
+    [allData]
+  );
+
+  // ── Analytics computations ─────────────────────────────────────────────────
+  const insights = useMemo(
+    () => computeInsights(effData as DashboardRow[], allEffData),
+    [effData, allEffData]
+  );
+
+  const decomposition = useMemo(() => {
+    const last = effData[effData.length - 1];
+    const prev = effData[effData.length - 2];
+    if (!last || !prev) return null;
+    return computeBillDecomposition(last as DashboardRow, prev as DashboardRow);
+  }, [effData]);
+
+  const heatmapData = useMemo(
+    () => computeHeatmapData(allEffData),
+    [allEffData]
   );
 
   const periodTotals = useMemo(
@@ -280,110 +333,79 @@ export default function DashboardPage() {
       <Nav />
       <main className="mx-auto max-w-5xl px-4 py-10 space-y-8">
 
-        {/* Header + date range filter */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground text-sm mt-1">
-              {bills.length} bill{bills.length !== 1 ? "s" : ""} analyzed
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {([3, 6, 12, null] as RangeOption[]).map((r) => (
-              <Button
-                key={String(r)}
-                variant={range === r ? "default" : "outline"}
-                size="sm"
-                onClick={() => setRange(r)}
-              >
-                {r === null ? "All time" : `Last ${r} mo`}
-              </Button>
-            ))}
-            <Button asChild variant="outline" size="sm">
-              <Link href="/">
-                <Upload className="mr-2 h-4 w-4" />Add Bill
-              </Link>
-            </Button>
-          </div>
-        </div>
-
-        {/* KPI row 1 */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {[
-            { label: "Latest Bill",      value: formatDollar(latest.total),   sub: latest.month,                           badge: null },
-            { label: "Month over Month", value: momPct != null ? `${momPct > 0 ? "+" : ""}${momPct.toFixed(1)}%` : "N/A", sub: "vs prior bill", badge: <TrendBadge pct={momPct} /> },
-            { label: "Period Average",   value: formatDollar(avgTotal),        sub: `${data.length} bills`,                 badge: null },
-            { label: "Total Spent",      value: `$${totalSpent.toFixed(0)}`,  sub: range ? `last ${range} mo` : "all time", badge: null },
-            { label: "High Months",      value: String(spikes.length),         sub: ">15% above avg",                       badge: null },
-          ].map(({ label, value, sub, badge }) => (
-            <Card key={label}>
-              <CardHeader className="pb-1 pt-4 px-4">
-                <CardDescription className="text-xs">{label}</CardDescription>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                <p className="text-2xl font-bold font-mono">{value}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
-                {badge && <div className="mt-2">{badge}</div>}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* KPI row 2 — per-service averages */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {serviceAvgs.map((s) => (
-            <Card key={s.name} className="border-l-4" style={{ borderLeftColor: s.color }}>
-              <CardContent className="px-3 py-3">
-                <p className="text-xs text-muted-foreground">{s.name} avg</p>
-                <p className="text-lg font-bold font-mono">{formatDollar(s.value)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {avgTotal > 0 ? ((s.value / avgTotal) * 100).toFixed(0) : 0}% of bill
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Spike alert */}
-        {latest.total > avgTotal * 1.15 && (
-          <Card className="border-yellow-400/50 bg-yellow-50 dark:bg-yellow-900/10">
-            <CardContent className="flex items-center gap-3 py-4">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0" />
-              <p className="text-sm">
-                Your latest bill ({formatDollar(latest.total)}) is{" "}
-                <strong>{((latest.total / avgTotal - 1) * 100).toFixed(0)}% above</strong>{" "}
-                your {range ? `${range}-month` : ""} average. Electric accounts for{" "}
-                <strong>{formatDollar(latest.electric)}</strong>.
+        {/* Header */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-3xl font-bold">Dashboard</h1>
+              <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2 flex-wrap">
+                <span>{bills.length} bill{bills.length !== 1 ? "s" : ""} analyzed</span>
+                <span className="opacity-40">·</span>
+                <span>
+                  Latest:{" "}
+                  <span className="font-medium text-foreground font-mono">{formatDollar(latest.total)}</span>
+                  {" "}in {latest.month}
+                </span>
+                <TrendBadge pct={momPct} />
               </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Best / worst callout */}
-        {data.length >= 3 && bestMonth && worstMonth && (
-          <div className="grid grid-cols-2 gap-4">
-            <Card className="border-green-300 bg-green-50 dark:bg-green-900/10">
-              <CardContent className="py-3 px-4">
-                <p className="text-xs text-muted-foreground mb-1">Lowest bill</p>
-                <p className="font-bold text-green-700 dark:text-green-400 font-mono text-lg">
-                  {formatDollar(bestMonth.total)}
-                </p>
-                <p className="text-xs text-muted-foreground">{bestMonth.month}</p>
-              </CardContent>
-            </Card>
-            <Card className="border-red-300 bg-red-50 dark:bg-red-900/10">
-              <CardContent className="py-3 px-4">
-                <p className="text-xs text-muted-foreground mb-1">Highest bill</p>
-                <p className="font-bold text-red-700 dark:text-red-400 font-mono text-lg">
-                  {formatDollar(worstMonth.total)}
-                </p>
-                <p className="text-xs text-muted-foreground">{worstMonth.month}</p>
-              </CardContent>
-            </Card>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              {([3, 6, 12, null] as RangeOption[]).map((r) => (
+                <Button
+                  key={String(r)}
+                  variant={range === r ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setRange(r)}
+                >
+                  {r === null ? "All time" : `Last ${r} mo`}
+                </Button>
+              ))}
+              <Button
+                variant={range === "custom" ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setRange("custom");
+                  if (!customStart && allData.length > 0) {
+                    setCustomStart(billDateToISO(allData[0].bill_date));
+                    setCustomEnd(billDateToISO(allData[allData.length - 1].bill_date));
+                  }
+                }}
+              >
+                Custom
+              </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/">
+                  <Upload className="mr-2 h-4 w-4" />Add Bill
+                </Link>
+              </Button>
+            </div>
           </div>
-        )}
 
-        {/* Tabs */}
+          {/* Custom date range inputs */}
+          {range === "custom" && (
+            <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/40">
+              <span className="text-sm text-muted-foreground">From</span>
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="border rounded-md px-2 py-1 bg-background text-foreground text-sm"
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="border rounded-md px-2 py-1 bg-background text-foreground text-sm"
+              />
+              {data.length === 0 && (
+                <span className="text-sm text-muted-foreground">No bills in this range</span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ── CHARTS — lead with interaction ──────────────────────────── */}
         <Tabs defaultValue="total">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="total">Total Cost</TabsTrigger>
@@ -391,6 +413,7 @@ export default function DashboardPage() {
             <TabsTrigger value="usage">Usage</TabsTrigger>
             <TabsTrigger value="efficiency">Efficiency</TabsTrigger>
             <TabsTrigger value="yoy">Year over Year</TabsTrigger>
+            <TabsTrigger value="patterns">Patterns</TabsTrigger>
           </TabsList>
 
           {/* ── Total Cost ─────────────────────────────────────────────── */}
@@ -809,9 +832,29 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          {/* ── Patterns ───────────────────────────────────────────────── */}
+          <TabsContent value="patterns" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Spending Heat Map</CardTitle>
+                <CardDescription>
+                  Color intensity shows bill amount — blue is lower, red is higher. Reveals
+                  seasonal patterns at a glance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SpendingHeatmap
+                  cells={heatmapData.cells}
+                  years={heatmapData.years}
+                  minTotal={heatmapData.minTotal}
+                  maxTotal={heatmapData.maxTotal}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
 
-        {/* Bill detail panel — click any chart point to open */}
+        {/* Bill detail panel — appears when a chart point is clicked */}
         {selectedBill && (
           <Card className="border-indigo-300 dark:border-indigo-700">
             <CardHeader className="flex flex-row items-start justify-between pb-3">
@@ -886,6 +929,116 @@ export default function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* ── BY THE NUMBERS ───────────────────────────────────────────── */}
+        <div className="flex items-center gap-4 pt-2">
+          <div className="flex-1 border-t" />
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">By the numbers</span>
+          <div className="flex-1 border-t" />
+        </div>
+
+        {/* KPI row 1 */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[
+            { label: "Latest Bill",    value: formatDollar(latest.total),                                                   sub: latest.month,                            badge: null },
+            { label: "Month over Month", value: momPct != null ? `${momPct > 0 ? "+" : ""}${momPct.toFixed(1)}%` : "N/A", sub: "vs prior bill",                         badge: <TrendBadge pct={momPct} /> },
+            { label: "Period Average", value: formatDollar(avgTotal),                                                        sub: `${data.length} bills`,                  badge: null },
+            { label: "Total Spent",    value: `$${totalSpent.toFixed(0)}`,                                                  sub: range === "custom" ? "custom range" : range ? `last ${range} mo` : "all time", badge: null },
+            { label: "High Months",    value: String(spikes.length),                                                         sub: ">15% above avg",                        badge: null },
+          ].map(({ label, value, sub, badge }) => (
+            <Card key={label}>
+              <CardHeader className="pb-1 pt-4 px-4">
+                <CardDescription className="text-xs">{label}</CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <p className="text-2xl font-bold font-mono">{value}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
+                {badge && <div className="mt-2">{badge}</div>}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* KPI row 2 — per-service averages */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {serviceAvgs.map((s) => (
+            <Card key={s.name} className="border-l-4" style={{ borderLeftColor: s.color }}>
+              <CardContent className="px-3 py-3">
+                <p className="text-xs text-muted-foreground">{s.name} avg</p>
+                <p className="text-lg font-bold font-mono">{formatDollar(s.value)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {avgTotal > 0 ? ((s.value / avgTotal) * 100).toFixed(0) : 0}% of bill
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* ── INSIGHTS ─────────────────────────────────────────────────── */}
+        {(insights.length > 0 || latest.total > avgTotal * 1.15 || decomposition) && (
+          <div className="flex items-center gap-4 pt-2">
+            <div className="flex-1 border-t" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Insights</span>
+            <div className="flex-1 border-t" />
+          </div>
+        )}
+
+        <InsightsPanel insights={insights} />
+
+        {/* Spike alert */}
+        {latest.total > avgTotal * 1.15 && (
+          <Card className="border-yellow-400/50 bg-yellow-50 dark:bg-yellow-900/10">
+            <CardContent className="flex items-center gap-3 py-4">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0" />
+              <p className="text-sm">
+                Your latest bill ({formatDollar(latest.total)}) is{" "}
+                <strong>{((latest.total / avgTotal - 1) * 100).toFixed(0)}% above</strong>{" "}
+                your {range === "custom" ? "range" : range ? `${range}-month` : ""} average. Electric accounts for{" "}
+                <strong>{formatDollar(latest.electric)}</strong>.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Bill change decomposition */}
+        {decomposition && prev && (
+          <BillDecomposition
+            result={decomposition}
+            latestMonth={latest.month}
+            prevMonth={prev.month}
+          />
+        )}
+
+        {/* ── HIGHLIGHTS ───────────────────────────────────────────────── */}
+        {data.length >= 3 && bestMonth && worstMonth && (
+          <>
+            <div className="flex items-center gap-4 pt-2">
+              <div className="flex-1 border-t" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Highlights</span>
+              <div className="flex-1 border-t" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Card className="border-green-300 bg-green-50 dark:bg-green-900/10">
+                <CardContent className="py-3 px-4">
+                  <p className="text-xs text-muted-foreground mb-1">Lowest bill</p>
+                  <p className="font-bold text-green-700 dark:text-green-400 font-mono text-lg">
+                    {formatDollar(bestMonth.total)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{bestMonth.month}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-red-300 bg-red-50 dark:bg-red-900/10">
+                <CardContent className="py-3 px-4">
+                  <p className="text-xs text-muted-foreground mb-1">Highest bill</p>
+                  <p className="font-bold text-red-700 dark:text-red-400 font-mono text-lg">
+                    {formatDollar(worstMonth.total)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{worstMonth.month}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </>
         )}
       </main>
     </>
