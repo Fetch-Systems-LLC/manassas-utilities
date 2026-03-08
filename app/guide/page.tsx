@@ -138,9 +138,9 @@ export default function GuidePage() {
               back to page 1 before collecting links.
             </p>
             <GuideStepImage
-              src="/guide/step-2-invoicecloud.png"
+              src="/guide/step-2.webp"
               alt="InvoiceCloud billing history page showing a table of invoices with pagination"
-              label="step-2-invoicecloud.png"
+              label="step-2.webp"
             />
           </Step>
 
@@ -178,9 +178,9 @@ export default function GuidePage() {
               ))}
             </ul>
             <GuideStepImage
-              src="/guide/step-4-downloading.png"
+              src="/guide/step-4.webp"
               alt="Extension popup showing download progress with green dots next to completed bills"
-              label="step-4-downloading.png"
+              label="step-4.webp"
             />
             <p className="text-xs text-muted-foreground mt-3">
               You can close and reopen the popup at any time — it remembers where
@@ -197,9 +197,9 @@ export default function GuidePage() {
               so they sort chronologically.
             </p>
             <GuideStepImage
-              src="/guide/step-5-folder.png"
+              src="/guide/step-5.webp"
               alt="Finder / File Explorer showing the Manassas Bills folder with chronologically named PDF files"
-              label="step-5-folder.png"
+              label="step-5.webp"
             />
           </Step>
 

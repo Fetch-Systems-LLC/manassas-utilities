@@ -1,13 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
 import path from "path";
+import { createRateLimiter, getIp } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const IS_DEV = process.env.NODE_ENV === "development";
+const MAX_BODY_BYTES = 10 * 1024 * 1024; // 10 MB
+
+// 20 parses per IP per minute — generous for real use, discourages abuse
+const limiter = createRateLimiter(60_000, 20);
 
 export async function POST(req: NextRequest) {
+  const ip = getIp(req);
+  const { allowed, retryAfter } = limiter(ip);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please slow down." },
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
+    );
+  }
+
+  const contentLength = Number(req.headers.get("content-length") ?? 0);
+  if (contentLength > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { error: "File too large. Maximum size is 10 MB." },
+      { status: 413 },
+    );
+  }
+
   const pdfBytes = Buffer.from(await req.arrayBuffer());
+
+  if (pdfBytes.byteLength > MAX_BODY_BYTES) {
+    return NextResponse.json(
+      { error: "File too large. Maximum size is 10 MB." },
+      { status: 413 },
+    );
+  }
 
   return new Promise<NextResponse>((resolve) => {
     const scriptPath = path.join(process.cwd(), "api", "parse_bill.py");

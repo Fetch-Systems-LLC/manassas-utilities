@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,6 +52,7 @@ export const metadata: Metadata = {
 
 import { Toaster } from "@/components/ui/sonner";
 import { CookieBanner } from "@/components/CookieBanner";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 
 export default function RootLayout({
   children,
@@ -67,18 +67,7 @@ export default function RootLayout({
         {children}
         <Toaster />
         <CookieBanner />
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-QQBNNCZTMY"
-          strategy="afterInteractive"
-        />
-        <Script id="google-analytics" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-QQBNNCZTMY');
-          `}
-        </Script>
+        <GoogleAnalytics />
       </body>
     </html>
   );

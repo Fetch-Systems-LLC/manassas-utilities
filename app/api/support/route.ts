@@ -1,35 +1,19 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createRateLimiter, getIp } from "@/lib/rate-limit";
 
-// Simple in-memory rate limiter
-// Map<IP, Timestamp>
-const rateLimitMap = new Map<string, number>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+// 3 support emails per IP per 15 minutes
+const limiter = createRateLimiter(15 * 60_000, 3);
 
 export async function POST(req: Request) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "unknown";
-    const now = Date.now();
-
-    // Check rate limit
-    if (rateLimitMap.has(ip)) {
-      const lastRequest = rateLimitMap.get(ip)!;
-      if (now - lastRequest < RATE_LIMIT_WINDOW) {
-        return NextResponse.json(
-          { error: "Too many requests. Please wait a minute." },
-          { status: 429 },
-        );
-      }
-    }
-    rateLimitMap.set(ip, now);
-
-    // Clean up old entries periodically (simple garbage collection)
-    if (rateLimitMap.size > 1000) {
-      for (const [key, timestamp] of rateLimitMap.entries()) {
-        if (now - timestamp > RATE_LIMIT_WINDOW) {
-          rateLimitMap.delete(key);
-        }
-      }
+    const ip = getIp(req);
+    const { allowed, retryAfter } = limiter(ip);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Too many requests. Please wait before sending another message." },
+        { status: 429, headers: { "Retry-After": String(retryAfter) } },
+      );
     }
 
     const { name, email, message, subject, honeyPot } = await req.json();
