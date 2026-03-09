@@ -121,7 +121,7 @@ export default function HomePage() {
                   </Button>
                   <Button asChild size="sm">
                     <a
-                      href="https://github.com/Fetch-Systems-LLC/manassas-utility-extension/releases/latest"
+                      href="https://chromewebstore.google.com/detail/manassas-bill-downloader/dokoficppoiffepgglgdjkhcalkgekob"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
